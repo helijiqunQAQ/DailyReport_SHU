@@ -11,13 +11,14 @@ from email.header import Header
 from bs4 import BeautifulSoup as soup
 import pickle
 from tqdm import tqdm
+import argparse
 
-WAIT = 120  # 多人上报时对方服务器报429错误时的等待时间
+WAIT = 100  # 多人上报时对方服务器报429错误时的等待时间
 MAX_RETRY = 2  # 遇到429错误时的尝试次数
 ADDR_1 = '嘉定校区内'  # 两报的校区
 EMAIL = ''  # Email账号
 EMAIL_PASS = ''  # Email口令
-EMAIL_HOST = ''  # Email 服务器
+EMAIL_HOST = ''  # Email 服务
 
 
 def make_json(path):
@@ -122,6 +123,7 @@ def update_json(path, all_stu):
     else:
         print("Nothing to add")
     return all_stu
+
 
 class Dailyreport:
     '''
@@ -248,7 +250,7 @@ class Dailyreport:
         else:
             self.cookie = True
             return sess
-    
+
     def legacy_login(self):
         '''
         想加入selenium登录作为最后登录手段，但是selenium过于没有技术含量，而且速度慢、使用依赖过多，所以没写
@@ -300,14 +302,18 @@ class Dailyreport:
         if self.one_or_two == 2:
             return ''
         else:
-            yesterday = (datetime.date.today() + datetime.timedelta(-1)).strftime('%Y-%m-%d') 
-            his = self.sess.get(f'https://selfreport.shu.edu.cn/ViewDayReport.aspx?day={yesterday}')
-            con = soup(his.text, 'html.parser').findAll('script', {'type': 'text/javascript'})[-1].string
-            f_state_val = [i.strip().replace(';', '').split('=')[1] for i in con.split('var') if '={' in i]
+            yesterday = (datetime.date.today() +
+                         datetime.timedelta(-1)).strftime('%Y-%m-%d')
+            his = self.sess.get(
+                f'https://selfreport.shu.edu.cn/ViewDayReport.aspx?day={yesterday}')
+            con = soup(his.text, 'html.parser').findAll(
+                'script', {'type': 'text/javascript'})[-1].string
+            f_state_val = [i.strip().replace(';', '').split('=')[1]
+                           for i in con.split('var') if '={' in i]
             addrs = []
             for i in f_state_val:
                 addrs.append(i)
-                if len(addrs)>3 and '选择县区' in addrs[-2]:
+                if len(addrs) > 3 and '选择县区' in addrs[-2]:
                     break
             return [eval(i.replace("true", 'True').replace('false', 'False')) for i in addrs[-4:]]
 
@@ -441,8 +447,10 @@ class Manager:
         self.failed = []
         self.sys_fail = False
         self.check_result = []
+        self._check = False
 
     def check(self):
+        self._check = True
         n = 0
         for i in self.students:
             if n % 5 == 0 and n != 0:
@@ -482,25 +490,42 @@ class Manager:
         return self
 
     def send(self):
-        if len(self.success) == len(self.students):
-            send_email(
-                f'一报的人有{len([i for i in self.success if i.one_or_two == 1])}个\n两报的人有{len([i for i in self.success if i.one_or_two != 1])}个\n ', "又是美好的一天")
+        if self._check:
+            if self.sys_fail:
+                send_email('上报准备失败！', subject='上报准备失败') 
+            else:
+                send_email('上报准备成功！', subject='上报准备成功')
         else:
-            send_email('failed: {}\nsuccess: {}'.format(";".join([str((i.stu_dic['name'], i.one_or_two, i.stu_dic['txt_file'])) for i in self.failed]), ";".join(
-                [str((i.stu_dic['name'], i.one_or_two)) for i in self.success])))
+            if len(self.success) == len(self.students):
+                send_email(
+                    f'一报的人有{len([i for i in self.success if i.one_or_two == 1])}个\n两报的人有{len([i for i in self.success if i.one_or_two != 1])}个\n ', "又是美好的一天")
+            else:
+                send_email('failed: {}\nsuccess: {}'.format(";".join([str((i.stu_dic['name'], i.one_or_two, i.stu_dic['txt_file'])) for i in self.failed]), ";".join(
+                    [str((i.stu_dic['name'], i.one_or_two)) for i in self.success])))
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--check', type=bool, default=False,
+                        help='Check the login of students')
+    parser.add_argument('--send', type=bool, default=False,
+                        help='Send Email or not')
+    args = parser.parse_args()
+
     if os.path.exists('all_stu.json'):
         all_stu = json.load(open('all_stu.json', 'r'))
     else:
         all_stu = make_json("students")
     all_stu = update_json('students', all_stu)
     manage = Manager(all_stu)
-    # manage.check()
-    manage.run()
-    # manage.send()
+    
+    if args.check:
+        manage.check()
+    else:
+        manage.run()
+    if args.send:
+        manage.send()
     if len(manage.failed) != 0:
         json.dump([i.stu_dic for i in manage.failed], open(
-            'all_stu_failed.json', 'w'), ensure_ascii=False) #记录上报没成功的人
+            'all_stu_failed.json', 'w'), ensure_ascii=False)  # 记录上报没成功的人
     json.dump(all_stu, open('all_stu.json', 'w'), ensure_ascii=False)

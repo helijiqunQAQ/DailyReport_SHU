@@ -13,10 +13,8 @@
 
 ## 更新
 
-* 解决了对lxml库的依赖
-* 改变了一报动态取地址的网址，之前是从上报网址中取默认内容，现在改为从上报历史中取前一天上报的地址
-* 解决了个别系统取地址时报index error的问题
-* 加入`students`文件夹和`all_stu.json`文件内容的同步模块，解决了后续加入的上报同学不加入all_stu.json的问题。
+* 更新上报内容（地址是否为住址选项），默认选是（暂时无法更改）
+* 代码优化（加入argparse）
 
 
 
@@ -41,40 +39,52 @@
 
 ## 用法
 
-1. 假如需要使用一报时一定要自己上报过至少一天！！！！
+1. 
 
-2. 在students文件夹中加入txt文件记录学生学号和密码，具体格式如`stu_1.txt`所示，想要多人上报的话直接在students文件夹下另外新建txt，命名无所谓。
+2. 假如需要使用一报时一定要自己上报过至少一天！！！！
 
-3. 在代码中配置个人Email信息，方便挂服务器的时候接收信息（或者也可以不配置...)
+3. 在students文件夹中加入txt文件记录学生学号和密码，具体格式如`stu_1.txt`所示，想要多人上报的话直接在students文件夹下另外新建txt，命名无所谓。
 
-4. 终端/cmd cd到项目文件夹下，输入` python dailyreport.py `  ，文件夹下会出现` all_stu.json`，用于记录上报者信息，方便debug、重复使用一些信息之类的。
+4. 在代码中配置个人Email信息，方便挂服务器的时候接收信息（或者也可以不配置...)
 
-5. 终端会打印以下信息，`done ` 就说明上报成功，`failed`说明出现了上报内容错误，`retry`说明遇到了429问题，正在重新登录（等待120秒），其他的话说明...出了大问题
+5. 终端/cmd cd到项目文件夹下，输入 如下代码即可进行上报
+
+    ```python
+    python dailyreport.py 
+    ```
+
+    文件夹下会出现` all_stu.json`，用于记录上报者信息，方便debug、重复使用一些信息之类的。假如仅仅想测试是否能成功登录和取地址，则加上如下的参数
+
+    ```python
+    python dailyreport.py --check True
+    ```
+
+    另外还加入了Email参数，假如想要使用Email功能则需要加上如下参数
+
+    ```python
+    python dailyreport.py --send True
+    ```
+
+    如下是所有的可选参数（` python dailyreport.py -h`即可调出）
+
+    ```bash
+    % python dailyreport.py -h           
+    usage: dailyreport.py [-h] [--check CHECK] [--send SEND]
+    
+    optional arguments:
+      -h, --help     show this help message and exit
+      --check CHECK  Check the login of students
+      --send SEND    Send Email or not
+    ```
+
+    
+
+6. 上报过程中终端会打印以下信息，`done ` 就说明上报成功，`failed`说明出现了上报内容错误，`retry`说明遇到了429问题，正在重新登录（等待120秒），其他的话说明...出了大问题
 
     ``` bash
     获取cookie
     stu_1.txt login succeed!
     张三 done
-    ```
-    
-6. 假如仅仅想测试是否能成功登录和取地址，请把`manage.run()`注释掉，然后把`manage.check()`的注释符号去掉，假如配置好了发送邮件，那么需要把`manage.send()`注释符去掉。
-
-    ```python
-    if __name__ == '__main__':
-        if os.path.exists('all_stu.json'):
-            all_stu = json.load(open('all_stu.json', 'r'))
-        else:
-            all_stu = make_json("students")
-        all_stu = update_json('students', all_stu)
-        manage = Manager(all_stu)
-        # manage.check()
-        manage.run()
-        # manage.send()
-        if len(manage.failed) != 0:
-            json.dump([i.stu_dic for i in manage.failed], open(
-                'all_stu_failed.json', 'w'), ensure_ascii=False) #记录上报没成功的人
-        json.dump(all_stu, open('all_stu.json', 'w'), ensure_ascii=False)
-    
     ```
 
 
@@ -105,4 +115,6 @@
 ## 感谢
 
 再次感谢@BlueFisher和其他contributors，也请大家给我一个star。
+
+
 
