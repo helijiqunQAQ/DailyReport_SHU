@@ -56,13 +56,13 @@
     文件夹下会出现` all_stu.json`，用于记录上报者信息，方便debug、重复使用一些信息之类的。假如仅仅想测试是否能成功登录和取地址，则加上如下的参数
 
     ```python
-    python dailyreport.py --check True
+    python dailyreport.py --check 1
     ```
 
     另外还加入了Email参数，假如想要使用Email功能则需要加上如下参数
 
     ```python
-    python dailyreport.py --send True
+    python dailyreport.py --send 1
     ```
 
     如下是所有的可选参数（` python dailyreport.py -h`即可调出）
@@ -73,8 +73,10 @@
     
     optional arguments:
       -h, --help     show this help message and exit
-      --check CHECK  Check the login of students
-      --send SEND    Send Email or not
+      --check CHECK  Check the login of students, default is 0, Input 1 if you
+                     want to check.`
+      --send SEND    Send Email or not, default is 0. Input 1 if you want to send
+                     Email.
     ```
 
     

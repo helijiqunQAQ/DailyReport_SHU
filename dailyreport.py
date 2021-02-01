@@ -492,7 +492,7 @@ class Manager:
     def send(self):
         if self._check:
             if self.sys_fail:
-                send_email('上报准备失败！', subject='上报准备失败') 
+                send_email('上报准备失败！', subject='上报准备失败')
             else:
                 send_email('上报准备成功！', subject='上报准备成功')
         else:
@@ -506,10 +506,10 @@ class Manager:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--check', type=bool, default=False,
-                        help='Check the login of students')
-    parser.add_argument('--send', type=bool, default=False,
-                        help='Send Email or not')
+    parser.add_argument('--check', type=str, default='0',
+                        help='Check the login of students, default is 0, Input 1 if you want to check.`')
+    parser.add_argument('--send', type=str, default='0',
+                        help='Send Email or not, default is 0. Input 1 if you want to send Email.')
     args = parser.parse_args()
 
     if os.path.exists('all_stu.json'):
@@ -518,14 +518,15 @@ if __name__ == '__main__':
         all_stu = make_json("students")
     all_stu = update_json('students', all_stu)
     manage = Manager(all_stu)
-    
-    if args.check:
+
+    if args.check == '1':
         manage.check()
     else:
         manage.run()
-    if args.send:
+    if args.send == '1':
         manage.send()
+
     if len(manage.failed) != 0:
         json.dump([i.stu_dic for i in manage.failed], open(
-            'all_stu_failed.json', 'w'), ensure_ascii=False)  # 记录上报没成功的人
+            'all_stu_failed.json', 'w'), ensure_ascii=False)
     json.dump(all_stu, open('all_stu.json', 'w'), ensure_ascii=False)
