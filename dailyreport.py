@@ -359,6 +359,7 @@ class Dailyreport:
             decoded_2["p1_ddlXian"] = self.stu_dic['addr_2'][2]
             decoded_2["p1_XiangXDZ"]['Label'] = '国内详细地址（省市区县无需重复填写）'
             decoded_2["p1_XiangXDZ"]['Text'] = self.stu_dic['addr_2'][3]['Text']
+            decoded_2["p1"]['Title'] = f"{self.stu_dic['name']}（{self.stu_dic['stu_num']}）的每日一报"
             if self.stu_dic['addr_2'][0]['SelectedValueArray'][0] != '上海':
                 decoded_2['p1_ShiFSH']['SelectedValue'] = '否'
                 decoded_2['p1_ShiFZX']['SelectedValue'] = None
