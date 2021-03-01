@@ -39,15 +39,14 @@
 
 ## 用法
 
-1. 
 
-2. 假如需要使用一报时一定要自己上报过至少一天！！！！
+1. 假如需要使用一报时一定要自己上报过至少一天！！！！
 
-3. 在students文件夹中加入txt文件记录学生学号和密码，具体格式如`stu_1.txt`所示，想要多人上报的话直接在students文件夹下另外新建txt，命名无所谓。
+2. 在students文件夹中加入txt文件记录学生学号和密码，具体格式如`stu_1.txt`所示，想要多人上报的话直接在students文件夹下另外新建txt，命名无所谓。
 
-4. 在代码中配置个人Email信息，方便挂服务器的时候接收信息（或者也可以不配置...)
+3. 在代码中配置个人Email信息，方便挂服务器的时候接收信息（或者也可以不配置...)
 
-5. 终端/cmd cd到项目文件夹下，输入 如下代码即可进行上报
+4. 终端/cmd cd到项目文件夹下，输入 如下代码即可进行上报
 
     ```python
     python dailyreport.py 
@@ -74,7 +73,7 @@
     optional arguments:
       -h, --help     show this help message and exit
       --check CHECK  Check the login of students, default is 0, Input 1 if you
-                     want to check.`
+                     want to check.
       --send SEND    Send Email or not, default is 0. Input 1 if you want to send
                      Email.
     ```
