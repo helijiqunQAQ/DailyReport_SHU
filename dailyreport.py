@@ -142,6 +142,7 @@ class Dailyreport:
         self.upload_data_1 = get_upload('once.txt')  # 一报模板
         self.upload_data_2 = get_upload('twice.txt')  # 两报模板
         self.cookie = False  # 记录是否使用cookie进行登录
+        self.in_school = False
 
         if self.stu_dic['cookie'] == '':
             self.sess = self.login()  # session
@@ -296,24 +297,27 @@ class Dailyreport:
         return addr_info[:4]
 
     def get_addr_2(self):
-        '''
-        从上一天的报送历史取到地址信息
-        '''
         if self.one_or_two == 2:
             return ''
         else:
             yesterday = (datetime.date.today() +
-                         datetime.timedelta(-1)).strftime('%Y-%m-%d')
+                            datetime.timedelta(-1)).strftime('%Y-%m-%d')
             his = self.sess.get(
                 f'https://selfreport.shu.edu.cn/ViewDayReport.aspx?day={yesterday}')
-            con = soup(his.text, 'html.parser').findAll(
-                'script', {'type': 'text/javascript'})[-1].string
-            f_state_val = [i.strip().replace(';', '').split('=')[1]
-                           for i in con.split('var') if '={' in i]
+            con = soup(his.text, 'html.parser').findAll('script', {'type': 'text/javascript'})[-1].string
+            f_state_val = [i.strip().replace(';', '').split('=')[1] for i in con.split('var') if '={' in i]
+            for i in f_state_val:
+                if "住校" in i:
+                    info_in_school = eval(i.replace("true", 'True').replace('false', 'False'))
+                    if info_in_school["SelectedValue"] == "是":
+                        self.in_school = True
+                    break
+                else:
+                    continue
             addrs = []
             for i in f_state_val:
                 addrs.append(i)
-                if len(addrs) > 3 and '选择县区' in addrs[-2]:
+                if len(addrs)>3 and '选择县区' in addrs[-2]:
                     break
             return [eval(i.replace("true", 'True').replace('false', 'False')) for i in addrs[-4:]]
 
@@ -343,12 +347,11 @@ class Dailyreport:
             state = eval(str(base64.b64decode(a)))
             decoded = json.loads(state.decode('utf-8'))
             decoded['p1_BaoSRQ']['Text'] = self.date
-            # 改校内地址
+            #改校内地址
             decoded["p1_XiangXDZ"]['Text'] = self.stu_dic['addr_1']
             if datetime.datetime.now().hour > 20:
                 decoded['p1']['title'] = '每日两报（下午）'
-            f_state = base64.b64encode(
-                bytes(json.dumps(decoded), encoding='utf-8'))
+            f_state = base64.b64encode(bytes(json.dumps(decoded),encoding='utf-8'))
         elif self.one_or_two == 1:
             a_2 = self.upload_data_1['F_STATE']
             state_2 = eval(str(base64.b64decode(a_2)))
@@ -369,15 +372,17 @@ class Dailyreport:
             else:
                 decoded_2['p1_ShiFZX']['Required'] = True
                 decoded_2['p1_ShiFZX']['Hidden'] = False
-                decoded_2['p1_ShiFSH']['SelectedValue'] = '是'
-                decoded_2['p1_ShiFZX']['SelectedValue'] = "否"
+                if self.in_school:
+                    decoded_2['p1_ShiFZX']['SelectedValue'] = "是"
+                    decoded_2['p1_ShiFZJ']["SelectedValue"] = 'null'
+                else:
+                    decoded_2['p1_ShiFZX']['SelectedValue'] = "否"
                 decoded_2['p1_TongZWDLH']['SelectedValue'] = '否'
                 decoded_2['p1_TongZWDLH']['Required'] = True
                 decoded_2['p1_ShiFZX']['Hidden'] = False
-
+                
             self.f_state_dic = decoded_2
-            f_state = base64.b64encode(
-                bytes(json.dumps(decoded_2), encoding='utf-8'))
+            f_state = base64.b64encode(bytes(json.dumps(decoded_2),encoding='utf-8'))
         return str(f_state)[2:-1]
 
     def make_upload_data(self):
@@ -390,24 +395,29 @@ class Dailyreport:
             upload_data['__VIEWSTATE'] = self.viewstate
             upload_data['__VIEWSTATEGENERATOR'] = self.vgen
             upload_data['F_STATE'] = self.f_state
-            # 省
+            #省
             upload_data['p1$ddlSheng$Value'] = self.stu_dic['addr_2'][0]['SelectedValueArray'][0]
             upload_data['p1$ddlSheng'] = self.stu_dic['addr_2'][0]['SelectedValueArray'][0]
-            # 市
+            #市
             upload_data['p1$ddlShi$Value'] = self.stu_dic['addr_2'][1]['SelectedValueArray'][0]
             upload_data['p1$ddlShi'] = self.stu_dic['addr_2'][1]['SelectedValueArray'][0]
-            # 区县
+            #区县
             upload_data['p1$ddlXian$Value'] = self.stu_dic['addr_2'][2]['SelectedValueArray'][0]
             upload_data['p1$ddlXian'] = self.stu_dic['addr_2'][2]['SelectedValueArray'][0]
-            # 详细地址
+            #详细地址
             upload_data['p1$XiangXDZ'] = self.stu_dic['addr_2'][3]['Text']
             if self.stu_dic['addr_2'][0]['SelectedValueArray'][0] != '上海':
                 upload_data['p1$ShiFSH'] = '否'
             else:
                 upload_data['p1$ShiFSH'] = '是'
-                upload_data['p1$ShiFZX'] = '否'
+                if self.in_school:
+                    upload_data['p1$ShiFZX'] = '是'
+                    upload_data['p1$ShiFZJ'] = '否'
+                else:
+                    upload_data['p1$ShiFZX'] = '否'
+                
                 upload_data['p1$TongZWDLH'] = '否'
-
+                
         else:
             upload_data = self.upload_data_2
             upload_data['p1$BaoSRQ'] = self.date
