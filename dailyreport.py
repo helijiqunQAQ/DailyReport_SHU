@@ -308,7 +308,7 @@ class Dailyreport:
             f_state_val = [i.strip().replace(';', '').split('=')[1] for i in con.split('var') if '={' in i]
             for i in f_state_val:
                 if "住校" in i:
-                    info_in_school = eval(i.replace("true", 'True').replace('false', 'False'))
+                    info_in_school = eval(i.replace("true", 'True').replace('false', 'False').replace("null", 'None'))
                     if info_in_school["SelectedValue"] == "是":
                         self.in_school = True
                     break
