@@ -160,6 +160,7 @@ class Dailyreport:
                 self.stu_dic['name'] = self.get_name()  # 获取名字
 
             self.stu_dic['addr_2'] = self.get_addr_2()  # 获取地址
+            self.warning_area = self.get_warning_area()
             self.viewstate, self.vgen = self.get_viewstate()  # 上报内容的加密字段获取
             self.f_state_dic = None
             self.f_state = self.get_f_state()
@@ -327,6 +328,9 @@ class Dailyreport:
         '''
         return self.sess.get(self.report_url)
 
+    def get_warning_area(self):
+        return re.findall(re.compile(r"<span style=\\'color:red;\\'>(.+?)</span>"), self.report_page.text)[0]
+
     def get_viewstate(self):
         pattern = re.compile(
             r'name="__VIEWSTATE" id="__VIEWSTATE" value="[^"]+')
@@ -339,9 +343,8 @@ class Dailyreport:
 
     def get_f_state(self):
         '''
-        制作f_state, 一报需要分上海和非上海，因为填报的内容不一样
+        f_state制作
         '''
-
         if self.one_or_two == 2:
             a = self.upload_data_2['F_STATE']
             state = eval(str(base64.b64decode(a)))
@@ -358,9 +361,25 @@ class Dailyreport:
             decoded_2 = json.loads(state_2.decode('utf-8'))
             decoded_2['p1_BaoSRQ']['Text'] = self.date
             decoded_2["p1_ddlSheng"] = self.stu_dic['addr_2'][0]
+            decoded_2["p1_ddlSheng"]['Hidden'] = False
+            decoded_2["p1_ddlSheng"]['Readonly'] = True
+
+            
+
             decoded_2["p1_ddlShi"] = self.stu_dic['addr_2'][1]
+            decoded_2["p1_ddlShi"]['Enabled'] = True
+            decoded_2["p1_ddlShi"]['Hidden'] = False
+            decoded_2["p1_ddlShi"]['Readonly'] = True
+
             decoded_2["p1_ddlXian"] = self.stu_dic['addr_2'][2]
-            decoded_2["p1_XiangXDZ"]['Label'] = '国内详细地址（省市区县无需重复填写）'
+            decoded_2["p1_ddlXian"]['Enabled'] = True
+            decoded_2["p1_ddlXian"]['Hidden'] = False
+
+            
+            #decoded_2["p1_XiangXDZ"]['Label'] = '国内详细地址（省市区县无需重复填写）'
+            decoded_2["p1_XiangXDZ"]['Label'] = '校内宿舍地址（校区、幢楼 、房间）'
+
+            decoded_2['p1_ContentPanel1_ZhongGFXDQ']['Text'] = f"<span style='color:red;'>{self.warning_area}</span>"
             decoded_2["p1_XiangXDZ"]['Text'] = self.stu_dic['addr_2'][3]['Text']
             decoded_2["p1"]['Title'] = f"{self.stu_dic['name']}（{self.stu_dic['stu_num']}）的每日一报"
             if self.stu_dic['addr_2'][0]['SelectedValueArray'][0] != '上海':
@@ -370,7 +389,7 @@ class Dailyreport:
                 decoded_2['p1_TongZWDLH']['Required'] = False
                 decoded_2['p1_ShiFZX']['Hidden'] = True
             else:
-                decoded_2['p1_ShiFZX']['Required'] = True
+                #decoded_2['p1_ShiFZX']['Required'] = True
                 decoded_2['p1_ShiFZX']['Hidden'] = False
                 if self.in_school:
                     decoded_2['p1_ShiFZX']['SelectedValue'] = "是"
