@@ -1,6 +1,6 @@
 # DailyReport_SHU
 
-上海大学健康之路每日一报/两报自动打卡，受@BlueFisher大神所启发的[项目](https://github.com/BlueFisher/SHU-selfreport)，已经自己使用3个月。如下是与@BlueFisher大神项目不同之处，希望能对大家有所帮助
+上海大学健康之路每日一报/两报自动打卡，受@BlueFisher大神所启发的[项目](https://github.com/BlueFisher/SHU-selfreport)。如下是与@BlueFisher大神项目不同之处，希望能对大家有所帮助
 
 * 能自行识别一报和两报
 * 一报根据前一天上报的地址进行填报，无需自己手动配置地址 
