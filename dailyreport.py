@@ -12,6 +12,8 @@ from bs4 import BeautifulSoup as soup
 import pickle
 from tqdm import tqdm
 import argparse
+from Crypto.Cipher import PKCS1_v1_5 as Cipher_pksc1_v1_5
+from Crypto.PublicKey import RSA
 
 WAIT = 100  # 多人上报时对方服务器报429错误时的等待时间
 MAX_RETRY = 2  # 遇到429错误时的尝试次数
@@ -19,6 +21,7 @@ ADDR_1 = '嘉定校区内'  # 两报的校区
 EMAIL = ''  # Email账号
 EMAIL_PASS = ''  # Email口令
 EMAIL_HOST = ''  # Email 服务
+PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----\n        MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDl/aCgRl9f/4ON9MewoVnV58OL\n        OU2ALBi2FKc5yIsfSpivKxe7A6FitJjHva3WpM7gvVOinMehp6if2UNIkbaN+plW\n        f5IwqEVxsNZpeixc4GsbY9dXEk3WtRjwGSyDLySzEESH/kpJVoxO7ijRYqU+2oSR\n        wTBNePOk1H+LRQokgQIDAQAB\n        -----END PUBLIC KEY-----"
 
 
 def make_json(path):
@@ -124,6 +127,12 @@ def update_json(path, all_stu):
         print("Nothing to add")
     return all_stu
 
+def encrypt(password, public_key):
+    rsakey = RSA.importKey(public_key)
+    cipher = Cipher_pksc1_v1_5.new(rsakey)
+    cipher_text = base64.b64encode(cipher.encrypt(password.encode()))
+    return cipher_text.decode()
+
 
 class Dailyreport:
     '''
@@ -182,7 +191,7 @@ class Dailyreport:
 
                 sess.post(r.url, data={
                     'username': self.stu_dic['stu_num'],
-                    'password': self.stu_dic['pass'],
+                    'password': encrypt(self.stu_dic['pass'],PUBLIC_KEY), 
                     'login_submit': ''
                 }, )
                 r = sess.get(
