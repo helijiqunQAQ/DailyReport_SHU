@@ -168,6 +168,7 @@ class Dailyreport:
             if self.stu_dic['name'] == '':
                 self.stu_dic['name'] = self.get_name()  # 获取名字
 
+            self.read_message()
             self.stu_dic['addr_2'] = self.get_addr_2()  # 获取地址
             self.warning_area = self.get_warning_area()
             self.viewstate, self.vgen = self.get_viewstate()  # 上报内容的加密字段获取
@@ -281,6 +282,22 @@ class Dailyreport:
             return name
         else:
             return ''
+
+    def read_message(self):
+        newsPage = self.sess.get('https://selfreport.shu.edu.cn/MyMessages.aspx').text
+        pattern = re.compile(r'标题：.+?\]')
+        pageInfo = re.findall(pattern, newsPage)
+        newsNotRead = [i for i in pageInfo if '未读' in i]
+        if len(newsNotRead) != 0:
+            print(f"有{len(newsNotRead)}条信息未读")
+            for i in tqdm(newsNotRead):
+                pattern = r'/ViewMessage.aspx\?id=\d+'
+                newsUrl = f'https://selfreport.shu.edu.cn{re.findall(pattern, i)[0]}'
+                read = self.sess.get(newsUrl)
+                # if read.status_code != 200:
+                    # print(newsUrl, read.status_code)
+        else:
+            print("新闻都读过了")
 
     def check_one_or_two(self):
         if self.report:
