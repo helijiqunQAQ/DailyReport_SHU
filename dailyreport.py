@@ -193,8 +193,7 @@ class Dailyreport:
                 sess.post(r.url, data={
                     'username': self.stu_dic['stu_num'],
                     'password': encrypt(self.stu_dic['pass'],PUBLIC_KEY), 
-                    'login_submit': ''
-                }, )
+                }, allow_redirects=False)
                 r = sess.get(
                     f"https://newsso.shu.edu.cn/oauth/authorize?client_id=WUHWfrntnWYHZfzQ5QvXUCVy&response_type=code&scope=1&redirect_uri=https%3A%2F%2Fselfreport.shu.edu.cn%2FLoginSSO.aspx%3FReturnUrl%3D%252f&state={state}")
                 if r.status_code == 200:
