@@ -168,13 +168,19 @@ class Dailyreport:
             if self.stu_dic['name'] == '':
                 self.stu_dic['name'] = self.get_name()  # 获取名字
 
-            self.read_message()
+            
             self.stu_dic['addr_2'] = self.get_addr_2()  # 获取地址
-            self.warning_area = self.get_warning_area()
+            self.checkDy = self.check_dy()
+            if self.checkDy is None:
+                print("非党员或已答题")
+            else:
+                print("党员")
+            self.warning_area = '云南省瑞丽市姐告国门社区，团结村委会金坎、弄喊片区（瑞丽大道以南），仙客巷和光明巷居民小组，鑫盛时代佳园小区，瑞京路红砖厂，星河蓝湾小区，双卯村民小组，下弄安村民小组，珠宝街老食品厂家属区'
             self.viewstate, self.vgen = self.get_viewstate()  # 上报内容的加密字段获取
             self.f_state_dic = None
             self.f_state = self.get_f_state()
             self.upload_content = self.make_upload_data()  # 上报内容整合
+            self.read_message()
 
     def login(self):
         '''
@@ -190,10 +196,16 @@ class Dailyreport:
                 url_param = eval(base64.b64decode(code).decode("utf-8"))
                 state = url_param['state']
 
-                sess.post(r.url, data={
+                login = sess.post(r.url, data={
                     'username': self.stu_dic['stu_num'],
                     'password': encrypt(self.stu_dic['pass'],PUBLIC_KEY), 
                 }, allow_redirects=False)
+
+                if login.status_code == 429:
+                    print("login 429")
+                    for i in tqdm(range(WAIT)):
+                        time.sleep(1)
+                    continue
                 r = sess.get(
                     f"https://newsso.shu.edu.cn/oauth/authorize?client_id=WUHWfrntnWYHZfzQ5QvXUCVy&response_type=code&scope=1&redirect_uri=https%3A%2F%2Fselfreport.shu.edu.cn%2FLoginSSO.aspx%3FReturnUrl%3D%252f&state={state}")
                 if r.status_code == 200:
@@ -212,7 +224,8 @@ class Dailyreport:
                 elif r.status_code == 429:
                     print(self.stu_dic['txt_file'], 'retrying ')
                     self.retry += 1
-                    time.sleep(WAIT)
+                    for t in tqdm(range(WAIT)):
+                        time.sleep(1)
                     continue
                 elif self.retry > MAX_RETRY:
                     self.error = 'Max tries exceeds...'
@@ -297,6 +310,28 @@ class Dailyreport:
                     # print(newsUrl, read.status_code)
         else:
             print("新闻都读过了")
+
+    def check_dy(self):
+        report_page = self.sess.get('https://selfreport.shu.edu.cn/DayReport.aspx')
+        test2 = soup(report_page.text, 'html.parser')
+        con2 = test2.findAll('script', {'type': 'text/javascript'})[-1].string
+        parsedCon = [i.strip().replace(';', '').split('=')[1] for i in con2.split('var') if '={' in i]
+        parsedStr = eval(parsedCon[0].replace("true", 'True').replace("false", 'False'))
+        if 'Label' in list(parsedStr.keys()):
+            newDict = {}
+            newDict['Required'] = True
+            newDict['Label'] = parsedStr['Label']
+            newDict['F_Items'] = parsedStr['F_Items']
+            newDict['SelectedValueArray'] = []
+            
+            if 'OnClientClick' in list(eval(parsedCon[1].replace('false', 'False')).keys()):
+                answer = eval(parsedCon[1].replace('false', 'False'))['OnClientClick'].split("'")[1]
+
+                answer = answer[5:]
+                return newDict, answer
+
+        else:
+            return None
 
     def check_one_or_two(self):
         if self.report:
@@ -389,7 +424,10 @@ class Dailyreport:
             decoded_2["p1_ddlSheng"]['Hidden'] = False
             decoded_2["p1_ddlSheng"]['Readonly'] = True
 
-            
+            if self.checkDy is not None:
+                decoded_2['p1_pnlDangSZS_DangSZS'] = self.checkDy[0]
+                decoded_2['p1_pnlDangSZS_ckda'] = {"Hidden":False,f"OnClientClick":"alert('参考答案：{self.checkDy[1]}');"}
+                decoded_2['p1_pnlDangSZS'] = {"Hidden":False,"IFrameAttributes":{}}
 
             decoded_2["p1_ddlShi"] = self.stu_dic['addr_2'][1]
             decoded_2["p1_ddlShi"]['Enabled'] = True
@@ -439,6 +477,8 @@ class Dailyreport:
             upload_data['__VIEWSTATE'] = self.viewstate
             upload_data['__VIEWSTATEGENERATOR'] = self.vgen
             upload_data['F_STATE'] = self.f_state
+            if self.checkDy is not None:
+                upload_data['p1$pnlDangSZS$DangSZS'] = self.checkDy[1]
             #省
             upload_data['p1$ddlSheng$Value'] = self.stu_dic['addr_2'][0]['SelectedValueArray'][0]
             upload_data['p1$ddlSheng'] = self.stu_dic['addr_2'][0]['SelectedValueArray'][0]
